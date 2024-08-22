@@ -2,14 +2,18 @@ package transforms
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	iotdbDTOs "iotdb-export/pkg/dtos"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/apache/iotdb-client-go/client"
 	"github.com/edgexfoundry/app-functions-sdk-go/v3/pkg/interfaces"
 	"github.com/edgexfoundry/go-mod-core-contracts/v3/clients/logger"
 	coreCommon "github.com/edgexfoundry/go-mod-core-contracts/v3/common"
+	"github.com/edgexfoundry/go-mod-core-contracts/v3/dtos"
 	gometrics "github.com/rcrowley/go-metrics"
 )
 
@@ -67,7 +71,7 @@ func (sender *Sender) Close() {
 	sender.Session.Close()
 }
 
-func (sender *Sender) setRetryData(ctx interfaces.AppFunctionContext, data iotdbDTOs.Readings) error {
+func (sender *Sender) setRetryData(ctx interfaces.AppFunctionContext, data *iotdbDTOs.Readings) error {
 	if sender.PersistOnError {
 		exportData, err := json.Marshal(data)
 		if err != nil {
@@ -95,40 +99,137 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext, data interface{}) 
 	if sender.LC == nil {
 		sender.LC = ctx.LoggingClient()
 	}
-	if d, ok := data.(iotdbDTOs.Readings); ok {
-		if len(d.DeviceIds) == 0 {
-			// We didn't receive a result
-			return false, fmt.Errorf("function IotDBSend in pipeline '%s': No Data Received", ctx.PipelineId())
-		}
 
-		if err := sender.NewSession(ctx.LoggingClient()); err != nil {
-			sender.ErrorMetric.Inc(1)
-			sender.setRetryData(ctx, d)
-			return false, err
-		}
-
-		if err := sender.Open(ctx); err != nil {
-			sender.ErrorMetric.Inc(1)
-			sender.setRetryData(ctx, d)
-			return false, err
-		}
-
-		if status, err := sender.Session.InsertRecords(d.DeviceIds, d.Measurements, d.DataTypes, d.Values, d.Timestamps); err != nil {
-			sender.ErrorMetric.Inc(1)
-			sender.setRetryData(ctx, d)
-			return false, fmt.Errorf("function IotDBSend in pipeline '%s': Error occurred %s with status code %s", ctx.PipelineId(), err, status)
-		}
-		// capture the size for metrics
-		byteData, err := json.Marshal(data)
-		if err != nil {
-			return false, err
-		}
-		dataBytes := len(byteData)
-		sender.SizeMetrics.Update(int64(dataBytes))
-
-		sender.LC.Debugf("Sent %d bytes of data to IotDB in pipeline '%s'", dataBytes, ctx.PipelineId())
-		sender.LC.Tracef("Data exported to IotDB in pipeline '%s': %s=%s", ctx.PipelineId(), coreCommon.CorrelationHeader, ctx.CorrelationID())
-
+	event, ok := data.(dtos.Event)
+	if !ok {
+		return false, errors.New("TransformToIotDB: didn't receive expect Event type")
 	}
+
+	readings, err := transformation(event)
+	if err != nil {
+		return false, fmt.Errorf("failed to transform iotdb data: %s", err)
+	}
+
+	sender.LC.Debugf("IotDB Payload: %s", readings)
+
+	if len(readings.DeviceIds) == 0 {
+		return false, fmt.Errorf("function IotDBSend in pipeline '%s': No Data Received", ctx.PipelineId())
+	}
+
+	if err := sender.NewSession(ctx.LoggingClient()); err != nil {
+		sender.ErrorMetric.Inc(1)
+		return false, err
+	}
+
+	if err := sender.Open(ctx); err != nil {
+		sender.ErrorMetric.Inc(1)
+		sender.setRetryData(ctx, readings)
+		return false, err
+	}
+
+	if status, err := sender.Session.InsertRecords(readings.DeviceIds, readings.Measurements, readings.DataTypes, readings.Values, readings.Timestamps); err != nil {
+		sender.ErrorMetric.Inc(1)
+		sender.setRetryData(ctx, readings)
+		return false, fmt.Errorf("function IotDBSend in pipeline '%s': Error occurred %s with status code %s", ctx.PipelineId(), err, status)
+	}
+	// capture the size for metrics
+	byteData, err := json.Marshal(data)
+	if err != nil {
+		return false, err
+	}
+	dataBytes := len(byteData)
+	sender.SizeMetrics.Update(int64(dataBytes))
+
+	sender.LC.Debugf("Sent %d bytes of data to IotDB in pipeline '%s'", dataBytes, ctx.PipelineId())
+	sender.LC.Tracef("Data exported to IotDB in pipeline '%s': %s=%s", ctx.PipelineId(), coreCommon.CorrelationHeader, ctx.CorrelationID())
+
 	return true, nil
+}
+
+func transformation(event dtos.Event) (*iotdbDTOs.Readings, error) {
+	readings := &iotdbDTOs.Readings{}
+
+	for _, reading := range event.Readings {
+		deviceId := reading.DeviceName + "." + reading.ProfileName
+		measurement := reading.ResourceName
+		idx := strings.LastIndex(reading.ResourceName, ".")
+		if idx > -1 {
+			deviceId += reading.ResourceName[:idx]
+			measurement = reading.ResourceName[idx+1:]
+		}
+
+		dataType, value, err := dataTypeConversion(reading.ValueType, reading.Value)
+		if err != nil {
+			return readings, err
+		}
+
+		// TODO timestamp conversion
+		readings.DeviceIds = append(readings.DeviceIds, deviceId)
+		readings.Measurements = append(readings.Measurements, []string{measurement})
+		readings.DataTypes = append(readings.DataTypes, []client.TSDataType{dataType})
+		readings.Values = append(readings.Values, value)
+		readings.Timestamps = append(readings.Timestamps, event.Origin)
+	}
+
+	return readings, nil
+}
+
+func dataTypeConversion(data_type string, value string) (client.TSDataType, []interface{}, error) {
+	var val []interface{}
+	if data_type == "Bool" {
+		v, err := strconv.ParseBool(value)
+		if err != nil {
+			return client.UNKNOWN, val, fmt.Errorf("dataTypeConversion: could not convert value %s to bool", value)
+
+		}
+		val = append(val, v)
+		return client.BOOLEAN, val, nil
+	}
+
+	if data_type == "Text" {
+		val = append(val, value)
+		return client.TEXT, val, nil
+	}
+
+	if (strings.Contains(data_type, "Uint") || strings.Contains(data_type, "Int")) && !strings.Contains(data_type, "64") {
+		v, err := strconv.ParseInt(value, 10, 32)
+		if err != nil {
+			return client.UNKNOWN, val, fmt.Errorf("dataTypeConversion: could not convert value %s to int32", value)
+
+		}
+		val = append(val, int32(v))
+		return client.INT32, val, nil
+	}
+
+	if (strings.Contains(data_type, "Uint") || strings.Contains(data_type, "Int")) && strings.Contains(data_type, "64") {
+		v, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return client.UNKNOWN, val, fmt.Errorf("dataTypeConversion: could not convert value %s to int64", value)
+
+		}
+		val = append(val, v)
+		return client.INT64, val, nil
+	}
+
+	if strings.Contains(data_type, "Float") && !strings.Contains(data_type, "64") {
+		v, err := strconv.ParseFloat(value, 32)
+		if err != nil {
+			return client.UNKNOWN, val, fmt.Errorf("dataTypeConversion: could not convert value %s to float32", value)
+
+		}
+		val = append(val, float32(v))
+		return client.FLOAT, val, nil
+	}
+
+	if strings.Contains(data_type, "Float") && strings.Contains(data_type, "64") {
+		v, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return client.UNKNOWN, val, fmt.Errorf("dataTypeConversion: could not convert value %s to float64", value)
+
+		}
+		val = append(val, v)
+		return client.DOUBLE, val, nil
+	}
+
+	return client.UNKNOWN, val, fmt.Errorf("dataTypeConversion: Unsupported data type %s", data_type)
 }

@@ -1,25 +1,26 @@
 Writable:
-  LogLevel: 'INFO'
+  LogLevel: INFO
   Telemetry:
-    Interval: '30s'
+    Interval: 30s
 
 Service:
-  Host: 'localhost'
+  Host: localhost
   Port: 59790 # Adjust if running multiple examples at the same time to avoid duplicate port conflicts
-  StartupMsg: 'LF Edge IotDB Export Service'
+  StartupMsg: LF Edge IotDB Export Service
 
 MessageBus:
   Disabled: false # Set to true if not using edgex-messagebus Trigger below and Metrics are not enabled
   Optional:
-    ClientId: 'app-iotdb-export'
+    ClientId: app-iotdb-export
 
 IotDBConfig:
-  Host: 'localhost'
+  Host: localhost
   Port: '6667'
-  UserName: 'root'
-  Password: 'root'
+  UserName: root
+  Password: root
   FetchSize: 1024
-  TimeZone: 'UTC'
+  TimeZone: UTC
   ConnectRetryMax: 5
   RPCCompression: false
   ConnectionTimeout: 5
+

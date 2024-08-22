@@ -32,7 +32,6 @@ func main() {
 	}
 
 	if err := service.SetDefaultFunctionsPipeline(
-		iotdbTransforms.NewConversion().TransformToIotDB,
 		iotdbTransforms.NewSender(config.IotDBConfig, true).Send,
 	); err != nil {
 		lc.Errorf("SDK SetDefaultFunctionsPipeline failed: %s\n", err.Error())
