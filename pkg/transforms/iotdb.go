@@ -105,7 +105,7 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext, data interface{}) 
 		return false, errors.New("TransformToIotDB: didn't receive expect Event type")
 	}
 
-	readings, err := transformation(event)
+	readings, err := transformation(event, sender.Config.Prefix)
 	if err != nil {
 		return false, fmt.Errorf("failed to transform iotdb data: %s", err)
 	}
@@ -127,11 +127,14 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext, data interface{}) 
 		return false, err
 	}
 
-	if status, err := sender.Session.InsertRecords(readings.DeviceIds, readings.Measurements, readings.DataTypes, readings.Values, readings.Timestamps); err != nil {
+	status, err := sender.Session.InsertRecords(readings.DeviceIds, readings.Measurements, readings.DataTypes, readings.Values, readings.Timestamps)
+	if err != nil {
 		sender.ErrorMetric.Inc(1)
 		sender.setRetryData(ctx, readings)
 		return false, fmt.Errorf("function IotDBSend in pipeline '%s': Error occurred %s with status code %s", ctx.PipelineId(), err, status)
 	}
+	sender.LC.Debugf("IotDBSend status code %s error %s", status)
+
 	// capture the size for metrics
 	byteData, err := json.Marshal(data)
 	if err != nil {
@@ -146,11 +149,11 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext, data interface{}) 
 	return true, nil
 }
 
-func transformation(event dtos.Event) (*iotdbDTOs.Readings, error) {
+func transformation(event dtos.Event, prefix string) (*iotdbDTOs.Readings, error) {
 	readings := &iotdbDTOs.Readings{}
 
 	for _, reading := range event.Readings {
-		deviceId := reading.DeviceName + "." + reading.ProfileName
+		deviceId := strings.TrimSuffix(prefix, ".") + "." + reading.DeviceName + "." + reading.ProfileName
 		measurement := reading.ResourceName
 		idx := strings.LastIndex(reading.ResourceName, ".")
 		if idx > -1 {

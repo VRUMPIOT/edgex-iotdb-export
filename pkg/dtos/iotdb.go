@@ -12,6 +12,7 @@ type Config struct {
 	ConnectRetryMax   int
 	RPCCompression    bool
 	ConnectionTimeout int
+	Prefix            string
 }
 
 type Readings struct {

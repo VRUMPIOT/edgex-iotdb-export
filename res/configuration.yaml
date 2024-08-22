@@ -23,4 +23,5 @@ IotDBConfig:
   ConnectRetryMax: 5
   RPCCompression: false
   ConnectionTimeout: 5
+  Prefix: ""
 
