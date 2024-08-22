@@ -154,7 +154,7 @@ func transformation(event dtos.Event, prefix string) (*iotdbDTOs.Readings, error
 
 	for _, reading := range event.Readings {
 		var deviceId = "root." + prefix
-		if deviceId[len(deviceId)] != '.' {
+		if deviceId[len(deviceId)-1] != '.' {
 			deviceId += "."
 		}
 		deviceId += reading.DeviceName + "." + reading.ProfileName
