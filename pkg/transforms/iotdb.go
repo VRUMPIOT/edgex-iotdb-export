@@ -153,7 +153,13 @@ func transformation(event dtos.Event, prefix string) (*iotdbDTOs.Readings, error
 	readings := &iotdbDTOs.Readings{}
 
 	for _, reading := range event.Readings {
-		deviceId := strings.TrimSuffix(prefix, ".") + "." + reading.DeviceName + "." + reading.ProfileName
+		var deviceId = ""
+		if prefix != "" {
+			deviceId += strings.TrimSuffix(prefix, ".") + "."
+		}
+		deviceId += reading.DeviceName + "." + reading.ProfileName
+		deviceId = strings.TrimSuffix(deviceId, ".")
+
 		measurement := reading.ResourceName
 		idx := strings.LastIndex(reading.ResourceName, ".")
 		if idx > -1 {
