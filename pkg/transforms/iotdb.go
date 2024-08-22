@@ -161,10 +161,10 @@ func transformation(event dtos.Event, prefix string) (*iotdbDTOs.Readings, error
 		deviceId = strings.TrimSuffix(deviceId, ".")
 
 		measurement := reading.ResourceName
-		idx := strings.LastIndex(reading.ResourceName, ".")
+		idx := strings.LastIndex(measurement, ".")
 		if idx > -1 {
-			deviceId += reading.ResourceName[:idx]
-			measurement = reading.ResourceName[idx+1:]
+			deviceId += measurement[:idx]
+			measurement = measurement[idx+1:]
 		}
 
 		dataType, value, err := dataTypeConversion(reading.ValueType, reading.Value)
