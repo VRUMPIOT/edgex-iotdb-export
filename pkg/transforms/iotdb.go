@@ -128,12 +128,12 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext, data interface{}) 
 	}
 
 	status, err := sender.Session.InsertRecords(readings.DeviceIds, readings.Measurements, readings.DataTypes, readings.Values, readings.Timestamps)
-	if err != nil {
+	if err != nil || status.Code != 200 {
 		sender.ErrorMetric.Inc(1)
 		sender.setRetryData(ctx, readings)
 		return false, fmt.Errorf("function IotDBSend in pipeline '%s': Error occurred %s with status code %s", ctx.PipelineId(), err, status)
 	}
-	sender.LC.Debugf("IotDBSend status code %s error %s", status)
+	sender.LC.Debugf("IotDBSend status code %s error", status)
 
 	// capture the size for metrics
 	byteData, err := json.Marshal(data)
