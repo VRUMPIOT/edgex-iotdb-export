@@ -272,6 +272,7 @@ func dataTypeConversion(data_type string, value string) (client.TSDataType,
 
 func nsecsTo(nsecs int64, precision iotdbDTOs.Precision) int64 {
 	ts := float64(nsecs)
+
 	if precision == iotdbDTOs.S {
 		return int64(ts / 1e9)
 	}
