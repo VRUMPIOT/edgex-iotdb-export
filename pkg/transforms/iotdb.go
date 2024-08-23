@@ -72,6 +72,8 @@ func (sender *Sender) Open(ctx interfaces.AppFunctionContext) error {
 }
 
 func (sender *Sender) Close() {
+	sender.Lock.Lock()
+	defer sender.Lock.Unlock()
 	sender.Session.Close()
 }
 
@@ -138,6 +140,7 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext,
 
 	status, err := sender.Session.InsertRecords(readings.DeviceIds,
 		readings.Measurements, readings.DataTypes, readings.Values, readings.Timestamps)
+
 	if err != nil || status.Code != 200 {
 		sender.ErrorMetric.Inc(1)
 		sender.setRetryData(ctx, data)
