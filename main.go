@@ -48,19 +48,21 @@ func (app *App) CreateAndRunAppService(serviceKey string,
 		return -1
 	}
 
-	if err := app.serviceConfig.IotDB.Validate(); err != nil {
+	app.lc.Debugf("IotDB Config: %s", app.serviceConfig)
+
+	if err := app.serviceConfig.IotDBConfig.Validate(); err != nil {
 		app.lc.Errorf("custom configuration failed validation: %s", err.Error())
 		return -1
 	}
 
-	if err := app.service.ListenForCustomConfigChanges(&app.serviceConfig.IotDB,
+	if err := app.service.ListenForCustomConfigChanges(&app.serviceConfig.IotDBConfig,
 		"IotDBConfig", app.ProcessConfigUpdates); err != nil {
 		app.lc.Errorf("unable to watch custom writable configuration: %s", err.Error())
 		return -1
 	}
 
 	if err := app.service.SetDefaultFunctionsPipeline(
-		transforms.NewSender(app.serviceConfig.IotDB, true).Send,
+		transforms.NewSender(app.serviceConfig.IotDBConfig, true).Send,
 	); err != nil {
 		app.lc.Errorf("SetFunctionsPipeline returned error: %s", err.Error())
 		return -1
@@ -82,8 +84,8 @@ func (app *App) ProcessConfigUpdates(rawWritableConfig interface{}) {
 		return
 	}
 
-	previous := app.serviceConfig.IotDB
-	app.serviceConfig.IotDB = *updated
+	previous := app.serviceConfig.IotDBConfig
+	app.serviceConfig.IotDBConfig = *updated
 
 	if reflect.DeepEqual(previous, updated) {
 		app.lc.Info("No changes detected")

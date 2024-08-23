@@ -8,7 +8,7 @@ import (
 )
 
 type ServiceConfig struct {
-	IotDB IotDBConfig
+	IotDBConfig IotDBConfig
 }
 
 func (c *ServiceConfig) UpdateFromRaw(rawConfig interface{}) bool {
