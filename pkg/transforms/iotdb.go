@@ -102,6 +102,8 @@ func (sender *Sender) onReconnecting(_ client.Session, _ *client.Config) {
 
 func (sender *Sender) Send(ctx interfaces.AppFunctionContext,
 	data interface{}) (bool, interface{}) {
+	defer sender.Close()
+
 	if sender.LC == nil {
 		sender.LC = ctx.LoggingClient()
 	}
@@ -156,8 +158,6 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext,
 	sender.LC.Debugf("Sent %d bytes of data to IotDB in pipeline '%s'", dataBytes, ctx.PipelineId())
 	sender.LC.Tracef("Data exported to IotDB in pipeline '%s': %s=%s", ctx.PipelineId(),
 		coreCommon.CorrelationHeader, ctx.CorrelationID())
-
-	sender.Close()
 
 	return true, nil
 }
