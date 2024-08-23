@@ -60,7 +60,7 @@ func (c *IotDBConfig) Validate() error {
 	if c.ConnectionTimeout <= 0 {
 		return errors.New("configuration incorrect value for ConnectionTimeout")
 	}
-	if c.Precision != dtos.S || c.Precision != dtos.MS || c.Precision != dtos.US || c.Precision != dtos.NS {
+	if c.Precision != dtos.S && c.Precision != dtos.MS && c.Precision != dtos.US && c.Precision != dtos.NS {
 		return errors.New("configuration incorrect value for Precision supports s, ms, us and ns")
 	}
 
