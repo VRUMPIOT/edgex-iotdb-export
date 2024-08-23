@@ -204,6 +204,7 @@ func transformation(event dtos.Event, prefix string,
 func dataTypeConversion(data_type string, value string) (client.TSDataType,
 	[]interface{}, error) {
 	var val []interface{}
+
 	if data_type == "Bool" {
 		v, err := strconv.ParseBool(value)
 		if err != nil {
