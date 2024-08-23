@@ -113,6 +113,7 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext,
 		return false,
 			errors.New("TransformToIotDB: didn't receive expect Event type")
 	}
+	sender.LC.Debugf("EdgeX Payload: %s", event)
 
 	readings, err := transformation(event, sender.Config.Prefix, sender.Config.Precision)
 	if err != nil {
@@ -165,11 +166,6 @@ func transformation(event dtos.Event, prefix string,
 	precision iotdbDTOs.Precision) (*iotdbDTOs.Readings, error) {
 	readings := &iotdbDTOs.Readings{}
 
-	if len(readings.DeviceIds) == 0 {
-		return readings,
-			fmt.Errorf("function transformation No Data Received")
-	}
-
 	for _, reading := range event.Readings {
 		ts := nsecsTo(reading.Origin, precision)
 
@@ -200,6 +196,11 @@ func transformation(event dtos.Event, prefix string,
 		readings.Measurements = append(readings.Measurements, []string{measurement})
 		readings.DataTypes = append(readings.DataTypes, []client.TSDataType{dataType})
 		readings.Values = append(readings.Values, value)
+	}
+
+	if len(readings.DeviceIds) == 0 {
+		return readings,
+			fmt.Errorf("function transformation No Data Received")
 	}
 
 	return readings, nil
