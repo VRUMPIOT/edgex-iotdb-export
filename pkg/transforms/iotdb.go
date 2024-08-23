@@ -106,6 +106,8 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext,
 		sender.LC = ctx.LoggingClient()
 	}
 
+	sender.LC.Debugf("IotDB Config: %s", sender.Config)
+
 	event, ok := data.(dtos.Event)
 	if !ok {
 		return false,
@@ -272,16 +274,14 @@ func dataTypeConversion(data_type string, value string) (client.TSDataType,
 }
 
 func nsecsTo(nsecs int64, precision iotdbDTOs.Precision) int64 {
-	ts := float64(nsecs)
-
 	if precision == iotdbDTOs.S {
-		return int64(ts / 1e9)
+		return int64(nsecs / 1e9)
 	}
 	if precision == iotdbDTOs.MS {
-		return int64(ts / 1e6)
+		return int64(nsecs / 1e6)
 	}
 	if precision == iotdbDTOs.US {
-		return int64(ts / 1e3)
+		return int64(nsecs / 1e3)
 	}
 
 	return nsecs
