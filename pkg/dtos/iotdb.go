@@ -1,19 +1,17 @@
 package dtos
 
-import "github.com/apache/iotdb-client-go/client"
+import (
+	"github.com/apache/iotdb-client-go/client"
+)
 
-type Config struct {
-	Host              string
-	Port              string
-	UserName          string
-	Password          string
-	FetchSize         int32
-	TimeZone          string
-	ConnectRetryMax   int
-	RPCCompression    bool
-	ConnectionTimeout int
-	Prefix            string
-}
+type Precision string
+
+const (
+	S  Precision = "s"
+	MS Precision = "ms"
+	US Precision = "us"
+	NS Precision = "ns"
+)
 
 type Readings struct {
 	DeviceIds    []string

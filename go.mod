@@ -1,4 +1,4 @@
-module iotdb-export
+module app-iotdb-export
 
 go 1.22
 

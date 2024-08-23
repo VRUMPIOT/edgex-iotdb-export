@@ -22,6 +22,7 @@ In order to supply data from your EdgeX instance to your IotDB instance, you mus
 
 ```yaml
 IotDBConfig:
+  Prefix: ""
   Host: localhost
   Port: '6667'
   UserName: root
@@ -31,7 +32,7 @@ IotDBConfig:
   ConnectRetryMax: 5
   RPCCompression: false
   ConnectionTimeout: 5
-  Prefix: ''
+  Precision: "s"
 ```
 
 Here’s an enhanced and corrected version of the README.md section:
