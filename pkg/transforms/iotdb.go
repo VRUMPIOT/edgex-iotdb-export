@@ -122,11 +122,6 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext,
 
 	sender.LC.Debugf("IotDB Payload: %s", readings)
 
-	if len(readings.DeviceIds) == 0 {
-		return false,
-			fmt.Errorf("function IotDBSend in pipeline '%s': No Data Received", ctx.PipelineId())
-	}
-
 	if err := sender.NewSession(ctx.LoggingClient()); err != nil {
 		sender.ErrorMetric.Inc(1)
 		return false, err
@@ -161,12 +156,19 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext,
 	sender.LC.Tracef("Data exported to IotDB in pipeline '%s': %s=%s", ctx.PipelineId(),
 		coreCommon.CorrelationHeader, ctx.CorrelationID())
 
+	sender.Close()
+
 	return true, nil
 }
 
 func transformation(event dtos.Event, prefix string,
 	precision iotdbDTOs.Precision) (*iotdbDTOs.Readings, error) {
 	readings := &iotdbDTOs.Readings{}
+
+	if len(readings.DeviceIds) == 0 {
+		return readings,
+			fmt.Errorf("function transformation No Data Received")
+	}
 
 	for _, reading := range event.Readings {
 		ts := nsecsTo(reading.Origin, precision)
