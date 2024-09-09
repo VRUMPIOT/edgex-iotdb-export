@@ -57,9 +57,6 @@ func (sender *Sender) NewSession(lc logger.LoggingClient) error {
 }
 
 func (sender *Sender) Open(ctx interfaces.AppFunctionContext) error {
-	sender.Lock.Lock()
-	defer sender.Lock.Unlock()
-
 	ctx.LoggingClient().Info("Connecting to iotdb server for export")
 	if err := sender.Session.Open(sender.Config.RPCCompression,
 		sender.Config.ConnectionTimeout); err != nil {
@@ -72,9 +69,14 @@ func (sender *Sender) Open(ctx interfaces.AppFunctionContext) error {
 }
 
 func (sender *Sender) Close() {
-	sender.Lock.Lock()
-	defer sender.Lock.Unlock()
-	sender.Session.Close()
+	ctx.LoggingClient().Info("Clossing iotdb session")
+	if err := sender.Session.Close(); err != nil {
+		return fmt.Errorf("in pipeline '%s', could not close IotDB session. Error: %s",
+			ctx.PipelineId(), err.Error())
+	}
+	ctx.LoggingClient().Infof("in pipeline '%s', IotDB session closed.",
+		ctx.PipelineId())
+	return nil
 }
 
 func (sender *Sender) setRetryData(ctx interfaces.AppFunctionContext,
