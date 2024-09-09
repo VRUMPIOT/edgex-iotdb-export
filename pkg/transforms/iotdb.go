@@ -68,14 +68,17 @@ func (sender *Sender) Open(ctx interfaces.AppFunctionContext) error {
 	return nil
 }
 
-func (sender *Sender) Close() {
+func (sender *Sender) Close(ctx interfaces.AppFunctionContext) error {
 	ctx.LoggingClient().Info("Clossing iotdb session")
-	if err := sender.Session.Close(); err != nil {
+	
+	status, err := sender.Session.Close()
+	
+	if err != nil {
 		return fmt.Errorf("in pipeline '%s', could not close IotDB session. Error: %s",
 			ctx.PipelineId(), err.Error())
 	}
-	ctx.LoggingClient().Infof("in pipeline '%s', IotDB session closed.",
-		ctx.PipelineId())
+	ctx.LoggingClient().Infof("in pipeline '%s', IotDB session closed with status '%s'.",
+		ctx.PipelineId(), status)
 	return nil
 }
 
@@ -106,7 +109,7 @@ func (sender *Sender) onReconnecting(_ client.Session, _ *client.Config) {
 
 func (sender *Sender) Send(ctx interfaces.AppFunctionContext,
 	data interface{}) (bool, interface{}) {
-	defer sender.Close()
+	defer sender.Close(ctx)
 
 	if sender.LC == nil {
 		sender.LC = ctx.LoggingClient()
