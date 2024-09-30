@@ -33,6 +33,9 @@ type IotDBConfig struct {
 	ConnectionTimeout int
 	Prefix            string
 	Precision         dtos.Precision
+	DeviceNameToPath	bool
+	DeviceProfileNameToPath bool
+  
 }
 
 func (c *IotDBConfig) Validate() error {

@@ -21,8 +21,11 @@ Once the micro service has successfully been compiled, run the executable create
 In order to supply data from your EdgeX instance to your IotDB instance, you must provide the . Open the `configuration.toml` file in the `res` folder and change the attributes in the `IotDBConfig` configuration section.
 
 ```yaml
+
 IotDBConfig:
   Prefix: ""
+  DeviceNameToPath: false #Put Device Name to IoTDB root path after prefix
+  DeviceProfileNameToPath: false  #Put Device Profile Name to IoTDB root path after prefix or/and Device Name
   Host: localhost
   Port: '6667'
   UserName: root
@@ -34,8 +37,6 @@ IotDBConfig:
   ConnectionTimeout: 5
   Precision: "s"
 ```
-
-Here’s an enhanced and corrected version of the README.md section:
 
 ## Data Payload
 

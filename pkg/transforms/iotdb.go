@@ -70,9 +70,9 @@ func (sender *Sender) Open(ctx interfaces.AppFunctionContext) error {
 
 func (sender *Sender) Close(ctx interfaces.AppFunctionContext) error {
 	ctx.LoggingClient().Info("Clossing iotdb session")
-	
+
 	status, err := sender.Session.Close()
-	
+
 	if err != nil {
 		return fmt.Errorf("in pipeline '%s', could not close IotDB session. Error: %s",
 			ctx.PipelineId(), err.Error())
@@ -124,7 +124,7 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext,
 	}
 	sender.LC.Debugf("EdgeX Payload: %s", event)
 
-	readings, err := transformation(event, sender.Config.Prefix, sender.Config.Precision)
+	readings, err := sender.Transformation(event)
 	if err != nil {
 		return false,
 			fmt.Errorf("failed to transform iotdb data: %s", err)
@@ -170,27 +170,28 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext,
 	return true, nil
 }
 
-func transformation(event dtos.Event, prefix string,
-	precision iotdbDTOs.Precision) (*iotdbDTOs.Readings, error) {
+func (sender *Sender) Transformation(event dtos.Event) (*iotdbDTOs.Readings, error) {
 	readings := &iotdbDTOs.Readings{}
 
 	for _, reading := range event.Readings {
-		ts := nsecsTo(reading.Origin, precision)
+		ts := nsecsTo(reading.Origin, sender.Config.Precision)
 
-		var deviceId = "root."
-		if prefix != "" {
-			deviceId += prefix
-			if deviceId[len(deviceId)-1] != '.' {
-				deviceId += "."
-			}
+		var path = "root"
+		if sender.Config.Prefix != "" {
+			path += "." + sender.Config.Prefix
+			path = strings.TrimSuffix(path, ".")
 		}
-		deviceId += reading.DeviceName + "." + reading.ProfileName
-		deviceId = strings.TrimSuffix(deviceId, ".")
+		if sender.Config.DeviceNameToPath {
+			path += "." + reading.DeviceName
+		}
+		if sender.Config.DeviceProfileNameToPath {
+			path += "." + reading.ProfileName
+		}
 
 		measurement := reading.ResourceName
 		idx := strings.LastIndex(measurement, ".")
 		if idx > -1 {
-			deviceId += measurement[:idx]
+			path += "." + measurement[:idx]
 			measurement = measurement[idx+1:]
 		}
 
@@ -200,7 +201,7 @@ func transformation(event dtos.Event, prefix string,
 		}
 
 		readings.Timestamps = append(readings.Timestamps, ts)
-		readings.DeviceIds = append(readings.DeviceIds, deviceId)
+		readings.DeviceIds = append(readings.DeviceIds, path)
 		readings.Measurements = append(readings.Measurements, []string{measurement})
 		readings.DataTypes = append(readings.DataTypes, []client.TSDataType{dataType})
 		readings.Values = append(readings.Values, value)

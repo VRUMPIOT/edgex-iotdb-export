@@ -15,6 +15,8 @@ MessageBus:
 
 IotDBConfig:
   Prefix: ""
+  DeviceNameToPath: false
+  DeviceProfileNameToPath: false
   Host: localhost
   Port: '6667'
   UserName: root
@@ -25,4 +27,3 @@ IotDBConfig:
   RPCCompression: false
   ConnectionTimeout: 5
   Precision: "s"
-
