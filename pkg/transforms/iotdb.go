@@ -146,7 +146,7 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext,
 	status, err := sender.Session.InsertRecords(readings.DeviceIds,
 		readings.Measurements, readings.DataTypes, readings.Values, readings.Timestamps)
 
-	if err != nil || status.Code != 200 {
+	if err != nil || (status.Code != 200 && status.Code != 400) {
 		sender.ErrorMetric.Inc(1)
 		sender.setRetryData(ctx, data)
 		return false,
