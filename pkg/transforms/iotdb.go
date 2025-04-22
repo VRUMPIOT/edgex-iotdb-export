@@ -4,7 +4,6 @@ import (
 	"app-iotdb-export/pkg/config"
 	iotdbDTOs "app-iotdb-export/pkg/dtos"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -84,6 +83,7 @@ func (sender *Sender) Close(ctx interfaces.AppFunctionContext) error {
 
 func (sender *Sender) setRetryData(ctx interfaces.AppFunctionContext,
 	data interface{}) error {
+	// TODO input transformed data so not to redo transformation
 	if sender.PersistOnError {
 		exportData, err := json.Marshal(data)
 		if err != nil {
@@ -117,11 +117,21 @@ func (sender *Sender) Send(ctx interfaces.AppFunctionContext,
 
 	sender.LC.Debugf("IotDB Config: %s", sender.Config)
 
-	event, ok := data.(dtos.Event)
-	if !ok {
-		return false,
-			errors.New("TransformToIotDB: didn't receive expect Event type")
+	var event dtos.Event
+
+	if bytes, ok := data.([]byte); ok {
+		// If data is []byte, unmarshal it into Event
+		if err := json.Unmarshal(bytes, &event); err != nil {
+			return false, fmt.Errorf("TransformToIotDB: failed to unmarshal JSON: %w", err)
+		}
+	} else if e, ok := data.(dtos.Event); ok {
+		// If data is already Event, use it directly
+		event = e
+	} else {
+		// Unsupported data type
+		return false, fmt.Errorf("TransformToIotDB: unsupported data type: %T", data)
 	}
+
 	sender.LC.Debugf("EdgeX Payload: %s", event)
 
 	readings, err := sender.Transformation(event)
