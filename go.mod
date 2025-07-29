@@ -1,10 +1,10 @@
 module app-iotdb-export
 
-go 1.22
+go 1.24
 
 require (
-	github.com/apache/iotdb-client-go v1.3.3
-	github.com/edgexfoundry/app-functions-sdk-go/v3 v3.1.0
+	github.com/apache/iotdb-client-go/v2 v2.0.3-1
+	github.com/edgexfoundry/app-functions-sdk-go/v3 v3.1.1
 	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.1.0
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9
 )

@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-ARG BASE=golang:1.22-alpine
+ARG BASE=golang:1.24-alpine
 FROM ${BASE} AS builder
 
 ARG ADD_BUILD_TAGS=""

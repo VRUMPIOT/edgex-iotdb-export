@@ -11,7 +11,7 @@ type ServiceConfig struct {
 	IotDBConfig IotDBConfig
 }
 
-func (c *ServiceConfig) UpdateFromRaw(rawConfig interface{}) bool {
+func (c *ServiceConfig) UpdateFromRaw(rawConfig any) bool {
 	configuration, ok := rawConfig.(*ServiceConfig)
 	if !ok {
 		fmt.Println("unable to cast raw config to type 'ServiceConfig'")
@@ -22,20 +22,19 @@ func (c *ServiceConfig) UpdateFromRaw(rawConfig interface{}) bool {
 }
 
 type IotDBConfig struct {
-	Host              string
-	Port              string
-	UserName          string
-	Password          string
-	FetchSize         int32
-	TimeZone          string
-	ConnectRetryMax   int
-	RPCCompression    bool
-	ConnectionTimeout int
-	Prefix            string
-	Precision         dtos.Precision
-	DeviceNameToPath	bool
+	Host                    string
+	Port                    string
+	UserName                string
+	Password                string
+	FetchSize               int32
+	TimeZone                string
+	ConnectRetryMax         int
+	RPCCompression          bool
+	ConnectionTimeout       int
+	Prefix                  string
+	Precision               dtos.Precision
+	DeviceNameToPath        bool
 	DeviceProfileNameToPath bool
-  
 }
 
 func (c *IotDBConfig) Validate() error {
