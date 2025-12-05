@@ -248,6 +248,9 @@ func (sender *Sender) convertDataType(dataType string, value string) (client.TSD
 	case dataType == "Text":
 		return client.TEXT, []any{value}, nil
 
+	case dataType == "Binary":
+		return client.BLOB, []any{value}, nil
+
 	case (strings.Contains(dataType, "Uint") || strings.Contains(dataType, "Int")) && !strings.Contains(dataType, "64"):
 		v, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
